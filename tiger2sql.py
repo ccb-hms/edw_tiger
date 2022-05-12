@@ -20,7 +20,7 @@ def find_tiger(years, uid, pwd, ipaddress, geo):
     #go get the shape files for the geos and years
     year1, year2 = year_split(years)
 
-    # Loop through each year in the users defined range, and each table available in the API
+    # Loop through each year in the users defined range, get each TIGER file
     for year in range(year1, year2):    
         if geo == "ZCTA":
             r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5/tl_{year}_us_{geo.lower()}510.zip", stream=True)
@@ -91,35 +91,6 @@ if __name__ == "__main__":
     # Set up logging configs
     logging.basicConfig(filename='HostData/logging.log',level=logging.INFO, format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
 
-    # I want to have logging from two separate functions, so here I'm defining the separate handlers and loggers
-    logging.config.dictConfig({
-        'version': 1,
-        'formatters': {
-            'simple_formatter': {
-                'format': '%(asctime)s | %(name)s | %(levelname)s | %(message)s'
-            }
-        },
-        'handlers': {
-            'api_calls': {
-                'class' : 'logging.FileHandler',
-                'formatter': 'simple_formatter',
-                'filename': 'HostData/api.txt'
-            },
-            'sql_calls': {
-                'class' : 'logging.FileHandler',
-                'formatter': 'simple_formatter',
-                'filename': 'HostData/sql.txt'
-            }
-        },
-        'loggers': {
-            'api_logger': {
-                'handlers': ['api_calls']
-            },
-            'sql_logger': {
-                'handlers': ['sql_calls']
-            }
-        }
-    })
     # First line of the logs
     logging.info(f'Starting data pull for {args.year}')
     
@@ -147,8 +118,4 @@ if __name__ == "__main__":
         writer = csv.writer(csvfile, delimiter=',',)
         writer.writerow(['EventTime', 'Origin', 'Level', 'Message'])
         writer.writerows(reader)
-    
-    # Delete the two txt files created by the logging. This step isn't necessary, but I like to clean
-    # up the dir when I'm done.
-    os.remove('HostData/sql.txt')
-    os.remove('HostData/api.txt')
+
