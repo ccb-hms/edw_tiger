@@ -1,4 +1,3 @@
-## TIGER2SQL
 <div id="top"></div>
 
 
@@ -6,15 +5,15 @@
 <br />
 <div align="center">
 
-  <h3 align="center"TIGER2SQL</h3>
+  <h3 align="center">TIGER2SQL</h3>
 
   <p align="center">
-    A Docker containerized process for downloading Census TIGER line/shapefiles to sql server.
+    A Docker containerized approach to download the Census Bureau's TIGER line/shapefiles to sql server.
     <br />
     <br />
-    <a href="https://github.com/ccb-hms/tiger2sql/issues">Report Bug</a>
+    <a href="https://github.com/ccb-hms/acsAPI/issues">Report Bug</a>
     ·
-    <a href="https://github.com/ccb-hms/tiger2sql/issues">Request Feature</a>
+    <a href="https://github.com/ccb-hms/acsAPI/issues">Request Feature</a>
   </p>
 </div>
 
