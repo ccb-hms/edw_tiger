@@ -5,7 +5,7 @@
 <br />
 <div align="center">
 
-  <h3 align="center">ACS API</h3>
+  <h3 align="center"TIGER2SQL</h3>
 
   <p align="center">
     A Docker containerized process for downloading Census TIGER line/shapefiles to sql server.
