@@ -103,7 +103,7 @@ This project is built using the following frameworks/libraries.
         -v ~/dev/tiger2sql:/HostData \
         mcr.microsoft.com/mssql/server:2019-latest
     ```
-    Here we're using the -v option, through which a new directory is created within Docker’s storage directory on the host machine, and Docker manages that directory’s contents. This way we are able to designate the dev/shapefiles directory as 'HostData' so whenever /HostData is referenced, Docker will use dev/shapefiles on the host machine. You can change this to whichever directory you're using.
+    Here we're using the -v option, through which a new directory is created within Docker’s storage directory on the host machine, and Docker manages that directory’s contents. This way we are able to designate the tiger2sql directory as 'HostData' so whenever /HostData is referenced, Docker will use tiger2sql on the host machine. You can change this to whichever directory you cloned tiger2sql into.
 
     the -e option sets your environmental variables, which here establishes the password you'll need in step 6.
 
