@@ -11,9 +11,9 @@
     A Docker containerized approach to download the Census Bureau's TIGER line/shapefiles to sql server.
     <br />
     <br />
-    <a href="https://github.com/ccb-hms/acsAPI/issues">Report Bug</a>
+    <a href="https://github.com/ccb-hms/tiger2sql/issues">Report Bug</a>
     ·
-    <a href="https://github.com/ccb-hms/acsAPI/issues">Request Feature</a>
+    <a href="https://github.com/ccb-hms/tiger2sql/issues">Request Feature</a>
   </p>
 </div>
 
@@ -40,6 +40,8 @@
     <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
+
+
 
 
 
