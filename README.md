@@ -100,7 +100,7 @@ This project is built using the following frameworks/libraries.
         -p 1433:1433 \
         -e 'ACCEPT_EULA=Y' \
         -e 'SA_PASSWORD=asd123^&*' \
-        -v ~/dev/shapefiles:/HostData \
+        -v ~/dev/tiger2sql:/HostData \
         mcr.microsoft.com/mssql/server:2019-latest
     ```
     Here we're using the -v option, through which a new directory is created within Docker’s storage directory on the host machine, and Docker manages that directory’s contents. This way we are able to designate the dev/shapefiles directory as 'HostData' so whenever /HostData is referenced, Docker will use dev/shapefiles on the host machine. You can change this to whichever directory you're using.
@@ -113,7 +113,7 @@ This project is built using the following frameworks/libraries.
        run \
         --rm \
         --name gdal-test \
-        -v ~/dev/shapefiles:/HostData \
+        -v ~/dev/tiger2sql:/HostData \
         -i -t gdal-test
     ```
     
