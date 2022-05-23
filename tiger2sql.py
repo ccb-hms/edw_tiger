@@ -32,6 +32,10 @@ def find_tiger(years, uid, pwd, ipaddress, geo):
 
         #go send the unzipped stuff to sql
         command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFILES;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -lco GEOMETRY_NAME=GEOM -lco GEOM_TYPE=GEOMETRY -a_srs "EPSG:4326" -overwrite -progress -skipfailures -lco UPLOAD_GEOM_FORMAT=wkb'
+        #NOTE ON THIS COMMAND: the geometry type is defined as geometry as opposed to geography due to the way ogr2ogr handles the shape files. When defined as geography,
+        #the file is rotated 90 degrees, requiring a manipulation afterwards to rotate it 90 degrees to it's original shape. To avoid this, I just left it as geom.
+        # same reasoning for the a_srs type, when I use the type defined in the file it loads incorrectly, but 4326 works.
+        
         os.system(command,)
 
 def create_db(ipaddress, uid, pwd):
