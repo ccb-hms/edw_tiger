@@ -31,7 +31,13 @@ def find_tiger(years, uid, pwd, ipaddress, geo):
         z.extractall(f"HostData/tl_{year}_us_{geo.lower()}.shp")
 
         #go send the unzipped stuff to sql
-        command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFILES;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -lco GEOMETRY_NAME=GEOM -lco GEOM_TYPE=GEOMETRY -a_srs "EPSG:4326" -overwrite -progress -skipfailures -lco UPLOAD_GEOM_FORMAT=wkb'
+        try:
+            command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFILES;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -lco GEOMETRY_NAME=GEOM -lco GEOM_TYPE=GEOMETRY -a_srs "EPSG:4326" -overwrite -progress -skipfailures -lco UPLOAD_GEOM_FORMAT=wkb'
+        
+        except:
+            logging.debug(f'There was a problem transferring the spacial file to sql server, please try again')
+        
+        
         #NOTE ON THIS COMMAND: the geometry type is defined as geometry as opposed to geography due to the way ogr2ogr handles the shape files. When defined as geography,
         #the file is rotated 90 degrees, requiring a manipulation afterwards to rotate it 90 degrees to it's original shape. To avoid this, I just left it as geom.
         # same reasoning for the a_srs type, when I use the type defined in the file it loads incorrectly, but 4326 works.
@@ -111,10 +117,6 @@ if __name__ == "__main__":
 
     for geo in geos:
         find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo)
-
-
-    # Call the first function
-    # find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=args.geo)
 
     # When the data pull is complete, write the logs to a csv file for easy reviewing
     with open('HostData/logging.log', 'r') as logfile, open('LOGFILE.csv', 'w') as csvfile:
