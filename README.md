@@ -65,7 +65,8 @@ This project is built using the following frameworks/libraries.
 
 * [Docker](https://Docker.com/)
 * [Python](https://python.org/)
-* [Geopandas](https://geopandas.org/en/stable/) 
+* [OGR2OGR]([https://gdal.org/programs/ogr2ogr.html#ogr2ogr])
+* A note on the ogr2ogr package: the geometry type is defined as geometry as opposed to geography due to the way ogr2ogr handles the shape files. When defined as geography the file is rotated 90 degrees requiring a manipulation afterwards to rotate it back 90 degrees to it's original shape. To avoid this, I just left it as geometry type. The same reasoning applies for the a_srs parameter, when I use the type defined in the file it loads incorrectly, but 4326 works. 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
