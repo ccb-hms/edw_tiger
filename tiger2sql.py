@@ -124,3 +124,4 @@ if __name__ == "__main__":
         writer = csv.writer(csvfile, delimiter=',',)
         writer.writerow(['EventTime', 'Origin', 'Level', 'Message'])
         writer.writerows(reader)
+

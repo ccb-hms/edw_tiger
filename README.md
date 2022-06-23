@@ -42,9 +42,6 @@
 </details>
 
 
-
-
-
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
@@ -58,7 +55,6 @@ The TIGER/Line Shapefiles contain a standard geographic identifier (GEOID) for e
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
-
 ### Built With
 
 This project is built using the following frameworks/libraries.
@@ -67,7 +63,7 @@ This project is built using the following frameworks/libraries.
 * [Python](https://python.org/)
 * [OGR2OGR]([https://gdal.org/programs/ogr2ogr.html#ogr2ogr])
 
-**Note on the ogr2ogr package: the geometry type is defined as geometry as opposed to geography due to the way ogr2ogr handles the shape files. When defined as geography the file is rotated 90 degrees requiring a manipulation afterwards to rotate it back 90 degrees to it's original shape. To avoid this, I just left it as geometry type. The same reasoning applies for the a_srs parameter, when I use the type defined in the file it loads incorrectly, but 4326 works.** 
+**Note on the ogr2ogr package:**  the geometry type is defined as geometry as opposed to geography due to the way ogr2ogr handles the shape files. When defined as geography the file is rotated 90 degrees requiring a manipulation afterwards to rotate it back 90 degrees to it's original shape. To avoid this, I just left it as geometry type. The same reasoning applies for the a_srs parameter, when I use the type defined in the file it loads incorrectly, but 4326 works.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -87,7 +83,7 @@ This project is built using the following frameworks/libraries.
    cd <dir>
    ```
 
-3. Build the docker image
+3. Build the docker image by running the following command in the same directory as step 1 and 2.
    ```sh
    docker build --tag gdal-test .
    ```
@@ -103,11 +99,16 @@ This project is built using the following frameworks/libraries.
         -e 'ACCEPT_EULA=Y' \
         -e 'SA_PASSWORD=asd123^&*' \
         -v ~/dev/tiger2sql:/HostData \
+        -v sqldata1:/var/opt/mssql \
         mcr.microsoft.com/mssql/server:2019-latest
     ```
-    Here we're using the -v option, through which a new directory is created within Docker’s storage directory on the host machine, and Docker manages that directory’s contents. This way we are able to designate the tiger2sql directory as 'HostData' so whenever /HostData is referenced, Docker will use tiger2sql on the host machine. You can change this to whichever directory you cloned tiger2sql into.
+    
+    This appears to work correctly with the Azure SQL Edge container by simply substituting `mcr.microsoft.com/azure-sql-edge:latest` for the image name.
 
-    the -e option sets your environmental variables, which here establishes the password you'll need in step 6.
+    This command will bind mount two directories in the container: `/HostData` and `/var/opt/mssql`. `/var/opt/mssql` is the default location that SQL Server uses to store 
+    database files.  By mounting a directory on your host (`/HostData`) as a data volume in your container, your database files will be persisted for future use even after the container is deleted.  See [here](https://docs.microsoft.com/en-us/sql/linux/sql-server-linux-docker-container-configure?view=sql-server-ver16&pivots=cs1-bash) for more details.
+
+    the -e option sets environment variables inside the container that are used to configure SQL Server.
 
 5. run the docker gdal container
    ```sh
@@ -118,6 +119,8 @@ This project is built using the following frameworks/libraries.
         -v ~/dev/tiger2sql:/HostData \
         -i -t gdal-test
     ```
+
+    This command mounts `/HostData` as a data volume in your container, such that your database files will be persisted for future use even after the container is deleted. You *MUST* use the same location for `/HostData` as in step 4. 
     
  6. An iteractive shell within the gdal container will open. Run the following command:
     ```sh
@@ -133,14 +136,14 @@ This project is built using the following frameworks/libraries.
     * **-p, --pwd: _str_** The password you defined in step 4, with the -e option.
 
     * **-ip, --ipaddress: _str_** The ip address that the container is using. You can find this by running the following commands in your terminal:
-    ```sh
-    docker network list
-    ```
-    to find the name of your gdal network (usually it is 'bridge') then use:
-    ```sh
-    docker network inspect bridge
-    ```
-    to find the ip address.
+        ```sh
+        docker network list
+        ```
+        to find the name of your gdal network (usually it is 'bridge') then use:
+        ```sh
+        docker network inspect bridge
+        ```
+        to find the ip address.
 
     * **-z, --zcta: optional** Include this option to download all TIGER files by ZCTA, or Zip Code Tabulated Areas. Can be combined with the -st/--state and -c/--county options to download for multiple rollups. Default behavior downloads for zcta, state, and counties.
 
@@ -148,16 +151,38 @@ This project is built using the following frameworks/libraries.
 
     * **-c, --county: optional** Include this option to download all TIGER files by County. Can be combined with the -st/--state and -z/--zcta options to download for multiple rollups. Default behavior downloads for zcta, state, and counties.
 
+    Example invocation:
+    ```
+    python3 -u < HostData/tiger2sql.py - --year "2017-2018" --uid "sa" --pwd "asd123^&*" --ipaddress "172.17.0.2" --zcta
+    ```
+
+    This example returns zip code tabulation area (zcta) level Tiger data from 2017-2018. The breakdown of each option is below:
+
+    * `--year 2017-2018` : Collects data from 2017-2018
+    * `--uid sa` : Default system admin uid for mssql
+    * `--pwd` asd123^&* : This password was set up in step 4 (-e "SA_PASSWORD=asd123^&*" )
+    * `--ipaddress` 172.17.0.2 : This is the ip address the workbench container is using
+    * `--zcta` : Only the "zcta" geographical rollup will be collected. 
+
 
 7. Errors are written to _**logging.log**_ in the directory you bind-mounted in steps 4 and 5 with the -v option. If you prefer a csv formatted view of the logs, it's written to _**LOGFILE.csv**_ in the same aforementioned directory. 
 
-8. When the process has finished, you can view the DB with your favorite database tool by logging into the SQL server. To understand how to preserve the container with the DB, [view the docs.](https://docs.docker.com/engine/reference/commandline/commit/)
+8. When the process has finished, kill the docker containers using
+      ```sh
+      docker kill workbench
+      docker kill gdal-test
+      ```
+    then run the following docker command to re-initialize the db in a fresh container.
+      ```docker run \
+      --name 'sql19' \
+      -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD='Str0ngp@ssworD \
+      -p 1433:1433 \
+      -v sqldata1:/var/opt/mssql \
+      -d mcr.microsoft.com/mssql/server:2019-latest
+      ```
+      
+9. You can view the DB with your favorite database tool by logging into SQL server. I like Azure Data Studio, but any remote-accessible db tool will work.
 
-9. kill the docker containers _🚩🚩🚩IMPORTANT NOTE🚩🚩🚩: You will lose the loaded DB once the containers are killed. To preserve your work, you will need to <instructions here>. Do not kill the containers until you are 100% done working in the DB_.
-  ```sh
-  docker kill gdal-test
-  docker kill workbench 
-  ```
   
 <p align="right">(<a href="#top">back to top</a>)</p>
 
