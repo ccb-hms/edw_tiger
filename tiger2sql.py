@@ -16,7 +16,7 @@ import csv
 import geopandas as gpd
 import matplotlib
 
-def find_tiger(years, uid, pwd, ipaddress, geo):
+def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
     #go get the shape files for the geos and years
     year1, year2 = year_split(years)
 
@@ -28,7 +28,10 @@ def find_tiger(years, uid, pwd, ipaddress, geo):
             r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}/tl_{year}_us_{geo.lower()}.zip", stream=True)
 
         z = zipfile.ZipFile(io.BytesIO(r.content))
-        z.extractall(f"HostData/tl_{year}_us_{geo.lower()}.shp")
+
+        filepath = f"HostData/tl_{year}_us_{geo.lower()}.shp"
+
+        z.extractall(filepath)
 
         #go send the unzipped stuff to sql
         try:
@@ -36,7 +39,11 @@ def find_tiger(years, uid, pwd, ipaddress, geo):
         
         except:
             logging.debug(f'There was a problem transferring the spacial file to sql server, please try again')
-        
+
+        if not cleanup:
+            os.remove(filepath)
+        else:
+            pass        
         
         #NOTE ON THIS COMMAND: the geometry type is defined as geometry as opposed to geography due to the way ogr2ogr handles the shape files. When defined as geography,
         #the file is rotated 90 degrees, requiring a manipulation afterwards to rotate it 90 degrees to it's original shape. To avoid this, I just left it as geom.
@@ -89,6 +96,7 @@ if __name__ == "__main__":
     parser.add_argument('-z', '--zcta', required=False, action="store_false", help='This option allows for the selection of the ZCTA geographical rollup.')
     parser.add_argument('-st', '--state', required=False, action="store_false", help='This option allows for the selection of the State geographical rollup.')
     parser.add_argument('-c', '--county', required=False, action="store_false", help='This option allows for the selection of the County geographical rollup.')
+    parser.add_argument('-cl', '--cleanup', required=False, action="store_false", help='This option allows for the cleanup of the host directory, to save disk space.')
 
     # Print usage statement
     if len(sys.argv) < 2:
@@ -116,7 +124,7 @@ if __name__ == "__main__":
         geos = ["ZCTA", "STATE", "COUNTY"]
 
     for geo in geos:
-        find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo)
+        find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo, cleanup=args.cleanup)
 
     # When the data pull is complete, write the logs to a csv file for easy reviewing
     with open('HostData/logging.log', 'r') as logfile, open('LOGFILE.csv', 'w') as csvfile:
@@ -124,4 +132,3 @@ if __name__ == "__main__":
         writer = csv.writer(csvfile, delimiter=',',)
         writer.writerow(['EventTime', 'Origin', 'Level', 'Message'])
         writer.writerows(reader)
-

@@ -17,8 +17,6 @@
   </p>
 </div>
 
-
-
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
@@ -151,6 +149,8 @@ This project is built using the following frameworks/libraries.
 
     * **-c, --county: optional** Include this option to download all TIGER files by County. Can be combined with the -st/--state and -z/--zcta options to download for multiple rollups. Default behavior downloads for zcta, state, and counties.
 
+    * **-cl, --cleanup: optional** Whether or not you'd like to save copies of the csv tables to your `/HostData` directory. Use this option by including _--cleanup_, to not use this option simply omit _--cleanup_ from your SSH invocation. 
+
     Example invocation:
     ```
     python3 -u < HostData/tiger2sql.py - --year "2017-2018" --uid "sa" --pwd "asd123^&*" --ipaddress "172.17.0.2" --zcta
@@ -163,6 +163,7 @@ This project is built using the following frameworks/libraries.
     * `--pwd` asd123^&* : This password was set up in step 4 (-e "SA_PASSWORD=asd123^&*" )
     * `--ipaddress` 172.17.0.2 : This is the ip address the workbench container is using
     * `--zcta` : Only the "zcta" geographical rollup will be collected. 
+    * `--cleanup` : Do not save a local copy of each scraped table.
 
 
 7. Errors are written to _**logging.log**_ in the directory you bind-mounted in steps 4 and 5 with the -v option. If you prefer a csv formatted view of the logs, it's written to _**LOGFILE.csv**_ in the same aforementioned directory. 
