@@ -15,6 +15,8 @@ import io
 import csv
 import geopandas as gpd
 import matplotlib
+import glob
+import shutil
 
 def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
     #go get the shape files for the geos and years
@@ -39,17 +41,14 @@ def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
         
         except:
             logging.debug(f'There was a problem transferring the spacial file to sql server, please try again')
-
-        if not cleanup:
-            os.remove(filepath)
-        else:
-            pass        
         
         #NOTE ON THIS COMMAND: the geometry type is defined as geometry as opposed to geography due to the way ogr2ogr handles the shape files. When defined as geography,
         #the file is rotated 90 degrees, requiring a manipulation afterwards to rotate it 90 degrees to it's original shape. To avoid this, I just left it as geom.
         # same reasoning for the a_srs type, when I use the type defined in the file it loads incorrectly, but 4326 works.
         
         os.system(command,)
+
+        return filepath
 
 def create_db(ipaddress, uid, pwd):
     # If the AmericanCommunitySurvey db has already been created, drop it and re-create it blank
@@ -124,7 +123,13 @@ if __name__ == "__main__":
         geos = ["ZCTA", "STATE", "COUNTY"]
 
     for geo in geos:
-        find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo, cleanup=args.cleanup)
+        filepath = find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo, cleanup=args.cleanup)
+
+        if not args.cleanup:
+            shutil.rmtree(filepath)     
+        else:
+            pass  
+
 
     # When the data pull is complete, write the logs to a csv file for easy reviewing
     with open('HostData/logging.log', 'r') as logfile, open('LOGFILE.csv', 'w') as csvfile:
