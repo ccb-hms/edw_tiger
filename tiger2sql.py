@@ -48,7 +48,10 @@ def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
         
         os.system(command,)
 
-        return filepath
+        if not cleanup:
+            shutil.rmtree(filepath)     
+        else:
+            pass 
 
 def create_db(ipaddress, uid, pwd):
     # If the AmericanCommunitySurvey db has already been created, drop it and re-create it blank
@@ -73,7 +76,7 @@ def year_split(years):
     if "-" in years:
         years = years.replace(" ","").split("-")
         year1 = int(years[0])
-        year2=int(years[1])
+        year2=int(years[1])+1
 
     # If the user enters a single year, assign year2 to be +1 year from the desired year, so the range function won't error out
     else:
@@ -123,12 +126,7 @@ if __name__ == "__main__":
         geos = ["ZCTA", "STATE", "COUNTY"]
 
     for geo in geos:
-        filepath = find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo, cleanup=args.cleanup)
-
-        if not args.cleanup:
-            shutil.rmtree(filepath)     
-        else:
-            pass  
+        find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo, cleanup=args.cleanup)
 
     # When the data pull is complete, write the logs to a csv file for easy reviewing
     with open('HostData/logging.log', 'r') as logfile, open('LOGFILE.csv', 'w') as csvfile:
