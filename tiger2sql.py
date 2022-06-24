@@ -130,7 +130,6 @@ if __name__ == "__main__":
         else:
             pass  
 
-
     # When the data pull is complete, write the logs to a csv file for easy reviewing
     with open('HostData/logging.log', 'r') as logfile, open('LOGFILE.csv', 'w') as csvfile:
         reader = csv.reader(logfile, delimiter='|')
