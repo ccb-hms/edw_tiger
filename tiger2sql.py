@@ -37,7 +37,7 @@ def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
 
         #go send the unzipped stuff to sql
         try:
-            command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFiles;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -lco GEOMETRY_NAME=GEOM -lco GEOM_TYPE=GEOMETRY -a_srs "EPSG:4326" -overwrite -progress -skipfailures -lco UPLOAD_GEOM_FORMAT=wkb'
+            command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFiles;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -lco GEOMETRY_NAME=GeographyLocation -lco GEOM_TYPE=GEOGRAPHY -a_srs "EPSG:4326" -overwrite -progress -skipfailures -lco UPLOAD_GEOM_FORMAT=wkb'
         
         except:
             logging.debug(f'There was a problem transferring the spacial file to sql server, please try again')
@@ -134,4 +134,3 @@ if __name__ == "__main__":
         writer = csv.writer(csvfile, delimiter=',',)
         writer.writerow(['EventTime', 'Origin', 'Level', 'Message'])
         writer.writerows(reader)
-
