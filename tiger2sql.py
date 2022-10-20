@@ -24,10 +24,13 @@ def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
 
     # Loop through each year in the users defined range, get each TIGER file
     for year in range(year1, year2):    
-        if geo == "ZCTA":
-            r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5/tl_{year}_us_{geo.lower()}510.zip", stream=True)
-        else:
-            r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}/tl_{year}_us_{geo.lower()}.zip", stream=True)
+        #HMC edit:
+        r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER2020/ZCTA520/tl_2020_us_zcta520.zip", stream=True)
+
+        # if geo == "ZCTA":
+        #     r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5/tl_{year}_us_{geo.lower()}520.zip", stream=True)
+        # else:
+        #     r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}/tl_{year}_us_{geo.lower()}.zip", stream=True)
 
         z = zipfile.ZipFile(io.BytesIO(r.content))
 
@@ -134,3 +137,4 @@ if __name__ == "__main__":
         writer = csv.writer(csvfile, delimiter=',',)
         writer.writerow(['EventTime', 'Origin', 'Level', 'Message'])
         writer.writerows(reader)
+
