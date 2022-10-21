@@ -74,7 +74,7 @@ if __name__ == "__main__":
     geos = [x for x in geos if geos[x]==False]
 
     if len(geos) == 0:
-        geos = ["ZCTA", "STATE", "COUNTY"]
+        geos = ["ZCTA"]
 
     for geo in geos:
         find_tiger(year=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo)
