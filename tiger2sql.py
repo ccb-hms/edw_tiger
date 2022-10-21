@@ -24,13 +24,10 @@ def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
 
     # Loop through each year in the users defined range, get each TIGER file
     for year in range(year1, year2):    
-        #HMC edit:
-        r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER2020/ZCTA520/tl_2020_us_zcta520.zip", stream=True)
-
-        # if geo == "ZCTA":
-        #     r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5/tl_{year}_us_{geo.lower()}520.zip", stream=True)
-        # else:
-        #     r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}/tl_{year}_us_{geo.lower()}.zip", stream=True)
+        if geo == "ZCTA":
+            r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5/tl_{year}_us_{geo.lower()}5{str(year)[-2:]}.zip", stream=True)
+        else:
+            r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}/tl_{year}_us_{geo.lower()}.zip", stream=True)
 
         z = zipfile.ZipFile(io.BytesIO(r.content))
 
@@ -40,7 +37,7 @@ def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
 
         #go send the unzipped stuff to sql
         try:
-            command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFiles;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -lco GEOMETRY_NAME=GeographyLocation -lco GEOM_TYPE=GEOGRAPHY -a_srs "EPSG:4326" -overwrite -progress -skipfailures -lco UPLOAD_GEOM_FORMAT=wkb'
+            command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFiles;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -lco GEOMETRY_NAME=GeographyLocation -lco GEOM_TYPE=GEOMETRY -a_srs "EPSG:4326" -overwrite -progress -skipfailures -lco UPLOAD_GEOM_FORMAT=wkb'
         
         except:
             logging.debug(f'There was a problem transferring the spacial file to sql server, please try again')
