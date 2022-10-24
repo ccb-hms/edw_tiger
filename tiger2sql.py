@@ -19,14 +19,17 @@ def find_tiger(year, uid, pwd, ipaddress, geo):
 
     z = zipfile.ZipFile(io.BytesIO(r.content))
 
-    filepath = f"HostData/tl_{year}_us_{geo.lower()}_geom.shp"
+    filepath = f"HostData/tl_{year}_us_{geo.lower()}.shp"
 
     z.extractall(filepath)
 
-    command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFiles;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}_geom.shp" -lco GEOMETRY_NAME=Geo -lco GEOM_TYPE=GEOGRAPHY -s_srs "EPSG:4269" -t_srs "EPSG:4326" -overwrite -progress -lco UPLOAD_GEOM_FORMAT=wkb'
+    # command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFiles;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}_geom.shp" -lco GEOMETRY_NAME=GeographyLocation -lco GEOM_TYPE=GEOGRAPHY -overwrite -progress'
+
+    # command = f'ogr2ogr -overwrite -progress -nln -f MSSQLSpatial "MSSQL:server={ipaddress};database=TIGERFiles;driver=ODBC Driver 17 for SQL Server;trusted_connection=yes;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}_geom.shp" -s_srs EPSG:4269 -t_srs EPSG:4326 -lco geom_name=shape -lco UPLOAD_GEOM_FORMAT=wkt'
+
+    command = f'ogr2ogr -overwrite -progress -nln "dbo.tl_{year}_us_{geo.lower()}" -f MSSQLSpatial "MSSQL:driver=ODBC Driver 17 for SQL Server;server={ipaddress};database=TIGERFiles;;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -s_srs EPSG:4269 -t_srs EPSG:4326 -lco geom_name=shape -lco UPLOAD_GEOM_FORMAT=wkt '
 
     os.system(command,)
-
 
 def create_db(ipaddress, uid, pwd):
     # If the AmericanCommunitySurvey db has already been created, drop it and re-create it blank
@@ -62,12 +65,12 @@ if __name__ == "__main__":
         parser.print_help()
         parser.print_usage()
         parser.exit()
-    
+
     args = parser.parse_args()
-   
+
     #Create the db
     create_db(ipaddress=args.ipaddress, uid=args.uid, pwd=args.pwd)
-    
+
     # Call the first function    
     geos = {"ZCTA":args.zcta}
 
