@@ -25,7 +25,7 @@ def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
     # Loop through each year in the users defined range, get each TIGER file
     for year in range(year1, year2):    
         if geo == "ZCTA":
-            r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5/tl_{year}_us_{geo.lower()}5{str(year)[-2:]}.zip", stream=True)
+            r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5{str(year)[-2:]}/tl_{year}_us_{geo.lower()}5{str(year)[-2:]}.zip", stream=True)
         else:
             r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}/tl_{year}_us_{geo.lower()}.zip", stream=True)
 
@@ -37,17 +37,45 @@ def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
 
         #go send the unzipped stuff to sql
         try:
-            command = f'ogr2ogr -f "MSSQLSpatial" "MSSQL:server={ipaddress};database=TIGERFiles;driver=ODBC Driver 17 for SQL Server;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}.shp" -lco GEOMETRY_NAME=GeographyLocation -lco GEOM_TYPE=GEOMETRY -a_srs "EPSG:4326" -overwrite -progress -skipfailures -lco UPLOAD_GEOM_FORMAT=wkb'
-        
+            command = f'ogr2ogr -overwrite -progress -nln "dbo.tl_{year}_us_{geo.lower()}_geom" -f MSSQLSpatial "MSSQL:driver=ODBC Driver 17 for SQL Server;server={ipaddress};database=TIGERFiles;;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}_geom.shp" -s_srs EPSG:4269 -t_srs EPSG:4326 -lco geom_name=GeometryLocation -lco UPLOAD_GEOM_FORMAT=wkt '
+
         except:
             logging.debug(f'There was a problem transferring the spacial file to sql server, please try again')
         
-        #NOTE ON THIS COMMAND: the geometry type is defined as geometry as opposed to geography due to the way ogr2ogr handles the shape files. When defined as geography,
-        #the file is rotated 90 degrees, requiring a manipulation afterwards to rotate it 90 degrees to it's original shape. To avoid this, I just left it as geom.
-        # same reasoning for the a_srs type, when I use the type defined in the file it loads incorrectly, but 4326 works.
+        #NOTE ON THIS COMMAND: the geometry type is defined as geometry as opposed to geography despite the features being geographical due to the way ogr2ogr handles 
+        #the shape files. The TIGER shapefiles use SRID 4269, NAD83 geodetic datum, which corresponds to geometry type data. We will transform the data into a Geography type
+        #once it is in mssql.
         
         os.system(command,)
+        
+        print("Updating GeometryLocation column")
+        command = f'UPDATE [dbo].[tl_{year}_us_{geo.lower()}_geom] SET GeometryLocation = GeometryLocation.STUnion(GeometryLocation.STStartPoint());' 
+        sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
+        print(f"Creating {geo} Geography table")
+        command = f'CREATE TABLE [dbo].[tl_{year}_us_{geo.lower()}] (ogr_fid   INTEGER, GeographyLocation GEOGRAPHY, zcta5ce20 NVARCHAR(MAX), geoid20 NVARCHAR(MAX), classfp20 NVARCHAR(MAX), mtfcc20 NVARCHAR(MAX), funcstat20 NVARCHAR(MAX), aland20 NUMERIC, awater20 NUMERIC, intptlat20 NVARCHAR(MAX), intptlon20 NVARCHAR(MAX), ) ; '
+        sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
+
+        print(f"Inserting data {geo} Geography table")
+        command = f'INSERT INTO [dbo].[tl_{year}_us_{geo.lower()}] SELECT ogr_fid, GEOGRAPHY::STGeomFromText(GeometryLocation.STAsText(),4326), zcta5ce20, geoid20 , classfp20 , mtfcc20 , funcstat20 , aland20 , awater20 , intptlat20, intptlon20 FROM [dbo].[tl_2020_us_zcta_geom];'
+        sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
+
+        print(f"Alter {geo} ogr_fid")
+        command = f'ALTER TABLE [dbo].[tl_{year}_us_{geo.lower()}] ALTER COLUMN ogr_fid INT NOT NULL;'
+        sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
+
+        print(f"Alter {geo} primary key ogr_fid")
+        command = f'ALTER TABLE [dbo].[tl_{year}_us_{geo.lower()}] ADD CONSTRAINT pkogr_fid PRIMARY KEY CLUSTERED (ogr_fid);'
+        sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
+
+        print(f"Create spatial index {geo} GeographyLocation")
+        command = f'CREATE SPATIAL INDEX sidxGeographyLocation ON [dbo].[tl_{year}_us_{geo.lower()}] (GeographyLocation)'
+        sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
+
+        print("DROP original TIGER geometry table")
+        command = f"DROP TABLE IF EXISTS [dbo].[tl_{year}_us_{geo.lower()}_geom]"
+        sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
+        
         if not cleanup:
             shutil.rmtree(filepath)     
         else:
