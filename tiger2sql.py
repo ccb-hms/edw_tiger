@@ -54,6 +54,11 @@ def find_tiger(year, uid, pwd, ipaddress, geo):
     command = 'CREATE SPATIAL INDEX sidxGeographyLocation ON dbo.tl_2020_us_zcta (GeographyLocation)'
     sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
+    print("Drop original _geom table")
+    command = 'IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tl_2020_us_zcta_geom]') AND type in (N'U')) DROP TABLE [dbo].[tl_2020_us_zcta_geom] GO'
+    sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
+    
+    
 def create_db(ipaddress, uid, pwd):
     # If the AmericanCommunitySurvey db has already been created, drop it and re-create it blank
     drop_create_db = '''USE master;
