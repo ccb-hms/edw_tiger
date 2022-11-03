@@ -55,7 +55,7 @@ def find_tiger(year, uid, pwd, ipaddress, geo):
     sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
     print("Drop original _geom table")
-    command = 'IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tl_2020_us_zcta_geom]') AND type in (N'U')) DROP TABLE [dbo].[tl_2020_us_zcta_geom] GO'
+    command = "IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[tl_2020_us_zcta_geom]') AND type in (N'U')) DROP TABLE [dbo].[tl_2020_us_zcta_geom]"
     sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
     
     
