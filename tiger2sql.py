@@ -95,7 +95,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     #Create the db
-    # create_db(ipaddress=args.ipaddress, uid=args.uid, pwd=args.pwd)
+    create_db(ipaddress=args.ipaddress, uid=args.uid, pwd=args.pwd)
 
     # Call the first function    
     geos = {"ZCTA":args.zcta}
