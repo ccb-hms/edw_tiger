@@ -163,3 +163,27 @@ if __name__ == "__main__":
         writer.writerow(['EventTime', 'Origin', 'Level', 'Message'])
         writer.writerows(reader)
 
+# docker build --tag gdal-test .
+
+#  docker \
+#      run \
+#      --rm \
+#      --platform linux/amd64 \
+#      --name workbench \
+#      -d \
+#      -p 1433:1433 \
+#      -e 'ACCEPT_EULA=Y' \
+#      -e 'SA_PASSWORD=asd123^&*' \
+#      -v ~/dev/spaghetti_dev/tiger2sql:/HostData \
+#      -v sqldata1:/var/opt/mssql \
+#      mcr.microsoft.com/mssql/server:2019-latest
+
+#  docker \
+#     run \
+#      --rm \
+#      --platform linux/amd64 \
+#      --name gdal-test \
+#      -v ~/dev/spaghetti_dev/tiger2sql:/HostData \
+#      -i -t gdal-test
+
+# python3 -u < /HostData/tiger2sql.py - --year "2020" --uid "sa" --pwd "asd123^&*" --ipaddress "172.17.0.2" --zcta
