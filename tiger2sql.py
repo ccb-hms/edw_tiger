@@ -13,6 +13,7 @@ import requests
 import zipfile
 import io
 import csv
+import time
 import geopandas as gpd
 import matplotlib
 import glob
@@ -21,59 +22,75 @@ import shutil
 def find_tiger(years, uid, pwd, ipaddress, geo, cleanup):
     #go get the shape files for the geos and years
     year1, year2 = year_split(years)
-
+    #TODO bug fix: there is a weird thing with 2020 data
     # Loop through each year in the users defined range, get each TIGER file
     for year in range(year1, year2):    
-        if geo == "ZCTA":
-            r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5{str(year)[-2:]}/tl_{year}_us_{geo.lower()}5{str(year)[-2:]}.zip", stream=True)
+        if geo == "ZCTA" and year == "2020":
+            tablename = f"tl_{year}_us_{geo.lower()}5{str(year)[-2:]}"
+            url = f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5{str(year)[-2:]}/{tablename}.zip"
+
+        elif geo == "ZCTA" and year != "2020":
+            tablename = f"tl_{year}_us_{geo.lower()}510"
+            url = f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}5/{tablename}.zip"
+
         else:
-            r = requests.get(f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}/tl_{year}_us_{geo.lower()}.zip", stream=True)
+            tablename = f"tl_{year}_us_{geo.lower()}"
+            url = f"https://www2.census.gov/geo/tiger/TIGER{year}/{geo}/{tablename}.zip"
+
+        r = requests.get(url, stream=True)
 
         z = zipfile.ZipFile(io.BytesIO(r.content))
 
-        filepath = f"HostData/tl_{year}_us_{geo.lower()}.shp"
+        filepath = "HostData"
 
         z.extractall(filepath)
 
         #go send the unzipped stuff to sql
-        try:
-            command = f'ogr2ogr -overwrite -progress -nln "dbo.tl_{year}_us_{geo.lower()}_geom" -f MSSQLSpatial "MSSQL:driver=ODBC Driver 17 for SQL Server;server={ipaddress};database=TIGERFiles;;uid={uid};pwd={pwd}" "HostData/tl_{year}_us_{geo.lower()}_geom.shp" -s_srs EPSG:4269 -t_srs EPSG:4326 -lco geom_name=GeometryLocation -lco UPLOAD_GEOM_FORMAT=wkt '
 
-        except:
-            logging.debug(f'There was a problem transferring the spacial file to sql server, please try again')
+        if year == "2020" and geo == "zcta":
+            command = f'ogr2ogr -overwrite -progress -nln "dbo.{tablename}_geom" -f MSSQLSpatial "MSSQL:driver=ODBC Driver 17 for SQL Server;server={ipaddress};database=TIGERFiles;;uid={uid};pwd={pwd}" "HostData/{tablename}.shp" -s_srs EPSG:4269 -t_srs EPSG:4326 -lco geom_name=GeometryLocation -lco UPLOAD_GEOM_FORMAT=wkt '
+        else:
+            command = f'ogr2ogr -overwrite -progress -nln "dbo.{tablename}_geom" -f MSSQLSpatial "MSSQL:driver=ODBC Driver 17 for SQL Server;server={ipaddress};database=TIGERFiles;;uid={uid};pwd={pwd}" "HostData/{tablename}.shp" -s_srs EPSG:4269 -t_srs EPSG:4326 -lco geom_name=GeometryLocation -lco UPLOAD_GEOM_FORMAT=wkt '
+
         
-        #NOTE ON THIS COMMAND: the geometry type is defined as geometry as opposed to geography despite the features being geographical due to the way ogr2ogr handles 
-        #the shape files. The TIGER shapefiles use SRID 4269, NAD83 geodetic datum, which corresponds to geometry type data. We will transform the data into a Geography type
-        #once it is in mssql.
+        # #NOTE ON THIS COMMAND: the geometry type is defined as geometry as opposed to geography despite the features being geographical due to the way ogr2ogr handles 
+        # #the shape files. The TIGER shapefiles use SRID 4269, NAD83 geodetic datum, which corresponds to geometry type data. We will transform the data into a Geography type
+        # #once it is in mssql.
         
         os.system(command,)
         
         print("Updating GeometryLocation column")
-        command = f'UPDATE [dbo].[tl_{year}_us_{geo.lower()}_geom] SET GeometryLocation = GeometryLocation.STUnion(GeometryLocation.STStartPoint());' 
+        command = f'UPDATE [dbo].[{tablename}_geom] SET GeometryLocation = GeometryLocation.STUnion(GeometryLocation.STStartPoint());' 
         sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
         print(f"Creating {geo} Geography table")
-        command = f'CREATE TABLE [dbo].[tl_{year}_us_{geo.lower()}] (ogr_fid   INTEGER, GeographyLocation GEOGRAPHY, zcta5ce20 NVARCHAR(MAX), geoid20 NVARCHAR(MAX), classfp20 NVARCHAR(MAX), mtfcc20 NVARCHAR(MAX), funcstat20 NVARCHAR(MAX), aland20 NUMERIC, awater20 NUMERIC, intptlat20 NVARCHAR(MAX), intptlon20 NVARCHAR(MAX), ) ; '
+        command = f'CREATE TABLE [dbo].[{tablename}] (ogr_fid   INTEGER, GeographyLocation GEOGRAPHY, zcta5ce20 NVARCHAR(MAX), geoid20 NVARCHAR(MAX), classfp20 NVARCHAR(MAX), mtfcc20 NVARCHAR(MAX), funcstat20 NVARCHAR(MAX), aland20 NUMERIC, awater20 NUMERIC, intptlat20 NVARCHAR(MAX), intptlon20 NVARCHAR(MAX), ) ; '
         sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
         print(f"Inserting data {geo} Geography table")
-        command = f'INSERT INTO [dbo].[tl_{year}_us_{geo.lower()}] SELECT ogr_fid, GEOGRAPHY::STGeomFromText(GeometryLocation.STAsText(),4326), zcta5ce20, geoid20 , classfp20 , mtfcc20 , funcstat20 , aland20 , awater20 , intptlat20, intptlon20 FROM [dbo].[tl_2020_us_zcta_geom];'
+        if geo == "zcta" and year == "2020":
+           command = f'INSERT INTO [dbo].[{tablename}] SELECT ogr_fid, GEOGRAPHY::STGeomFromText(GeometryLocation.STAsText(),4326), zcta5ce20, geoid20 , classfp20 , mtfcc20 , funcstat20 , aland20 , awater20 , intptlat20, intptlon20 FROM [dbo].[{tablename}_geom];'
+        elif geo == "zcta" and year != "2020":
+            command = f'INSERT INTO [dbo].[{tablename}] SELECT ogr_fid, GEOGRAPHY::STGeomFromText(GeometryLocation.STAsText(),4326), zcta5ce10, geoid10 , classfp10 , mtfcc10 , funcstat10 , aland10 , awater10 , intptlat10, intptlon10 FROM [dbo].[{tablename}_geom];'
+        else:
+            command = f'INSERT INTO [dbo].[{tablename}] SELECT ogr_fid, GEOGRAPHY::STGeomFromText(GeometryLocation.STAsText(),4326), zcta5ce10, geoid10 , classfp10 , mtfcc10 , funcstat10 , aland10 , awater10 , intptlat10, intptlon10 FROM [dbo].[{tablename}_geom];'
+        
         sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
         print(f"Alter {geo} ogr_fid")
-        command = f'ALTER TABLE [dbo].[tl_{year}_us_{geo.lower()}] ALTER COLUMN ogr_fid INT NOT NULL;'
+        command = f'ALTER TABLE [dbo].[{tablename}] ALTER COLUMN ogr_fid INT NOT NULL;'
         sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
         print(f"Alter {geo} primary key ogr_fid")
-        command = f'ALTER TABLE [dbo].[tl_{year}_us_{geo.lower()}] ADD CONSTRAINT pkogr_fid PRIMARY KEY CLUSTERED (ogr_fid);'
+        command = f'ALTER TABLE [dbo].[{tablename}] ADD CONSTRAINT pkogr_fid PRIMARY KEY CLUSTERED (ogr_fid);'
         sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
         print(f"Create spatial index {geo} GeographyLocation")
-        command = f'CREATE SPATIAL INDEX sidxGeographyLocation ON [dbo].[tl_{year}_us_{geo.lower()}] (GeographyLocation)'
+        command = f'CREATE SPATIAL INDEX sidxGeographyLocation ON [dbo].[{tablename}] (GeographyLocation)'
         sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
 
         print("DROP original TIGER geometry table")
-        command = f"DROP TABLE IF EXISTS [dbo].[tl_{year}_us_{geo.lower()}_geom]"
+        command = f"DROP TABLE IF EXISTS [dbo].[{tablename}_geom]"
         sql_server(command, 'TIGERFiles', ipaddress, uid, pwd)
         
         if not cleanup:
@@ -153,8 +170,12 @@ if __name__ == "__main__":
     if len(geos) == 0:
         geos = ["ZCTA", "STATE", "COUNTY"]
 
+    start_time = time.time()
+
     for geo in geos:
         find_tiger(years=args.year, uid=args.uid, pwd=args.pwd, ipaddress=args.ipaddress, geo=geo, cleanup=args.cleanup)
+
+    print("Total Running time = {:.5f} seconds".format(time.time() - start_time))
 
     # When the data pull is complete, write the logs to a csv file for easy reviewing
     with open('HostData/logging.log', 'r') as logfile, open('LOGFILE.csv', 'w') as csvfile:
@@ -165,25 +186,26 @@ if __name__ == "__main__":
 
 # docker build --tag gdal-test .
 
-#  docker \
-#      run \
-#      --rm \
-#      --platform linux/amd64 \
-#      --name workbench \
-#      -d \
-#      -p 1433:1433 \
-#      -e 'ACCEPT_EULA=Y' \
-#      -e 'SA_PASSWORD=asd123^&*' \
-#      -v ~/dev/spaghetti_dev/tiger2sql:/HostData \
-#      -v sqldata1:/var/opt/mssql \
-#      mcr.microsoft.com/mssql/server:2019-latest
+# docker run \
+# -e "ACCEPT_EULA=Y" \
+# -e "SA_PASSWORD=Str0ngp@ssworD" \
+# -p 1433:1433 \
+# --platform linux/amd64 \
+# --name sql1 \
+# --hostname sql1 \
+# -v  ~/dev/tiger2sql:/HostData \
+# -v /Users/Sam/Desktop/sqldata1:/var/opt/mssql \
+# -d \
+# --rm \
+# mcr.microsoft.com/mssql/server:2019-latest
 
 #  docker \
 #     run \
 #      --rm \
 #      --platform linux/amd64 \
 #      --name gdal-test \
-#      -v ~/dev/spaghetti_dev/tiger2sql:/HostData \
+#      -v ~/dev/tiger2sql:/HostData \
 #      -i -t gdal-test
 
-# python3 -u < /HostData/tiger2sql.py - --year "2020" --uid "sa" --pwd "asd123^&*" --ipaddress "172.17.0.2" --zcta
+# python3 -u < /HostData/tiger2sql.py - --year "2017" --uid "sa" --pwd "Str0ngp@ssworD" --ipaddress "172.17.0.2" --zcta
+
