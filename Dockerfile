@@ -1,4 +1,4 @@
-FROM osgeo/gdal:ubuntu-full-3.5.0
+FROM osgeo/gdal:ubuntu-full-3.3.0
 #------------------------------------------------------------------------------
  # Install system tools and libraries via apt
  #------------------------------------------------------------------------------
@@ -27,6 +27,7 @@ FROM osgeo/gdal:ubuntu-full-3.5.0
      && echo "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main" | tee /etc/apt/sources.list.d/mssql-release.list \
      && apt-get update \
      && ACCEPT_EULA=Y apt-get install msodbcsql17
+
  # install FreeTDS driver
  RUN wget ftp://ftp.freetds.org/pub/freetds/stable/freetds-1.1.40.tar.gz
  RUN tar zxvf freetds-1.1.40.tar.gz
